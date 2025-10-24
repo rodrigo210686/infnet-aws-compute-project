@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Página S3 - Auto Scaling Test</title>
+  <style>
+    :root { --bg: linear-gradient(135deg, #4CAF50, #2E8B57); }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #222;
+      text-align: center;
+      background: var(--bg);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 15px;
+      padding: 30px 40px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+      max-width: 600px;
+    }
+    h1 {
+      margin-top: 0;
+      color: #2E8B57;
+    }
+    p {
+      font-size: 18px;
+      margin: 10px 0;
+    }
+    footer {
+      margin-top: 40px;
+      font-size: 14px;
+      color: #fff;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Página Hospedada no Amazon S3</h1>
+    <p>Esta página está sendo servida a partir de um <strong>bucket S3</strong> configurado como site estático.</p>
+    <p>Use este exemplo para testar balanceamento, integração com CloudFront ou Health Checks.</p>
+    <p><strong>Status:</strong> Página S3 ativa e acessível ✅</p>
+  </div>
+  <footer>
+    © 2025 - Amazon S3 Static Website Demo
+  </footer>
+</body>
+</html>
