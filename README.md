@@ -136,6 +136,36 @@ Este projeto provisiona uma **arquitetura AWS altamente disponível** composta p
 
 ---
 
+---
+
+## Code Commit App Code to upload
+
+```sh
+cd /root/terraform/infnet-aws-compute-project/infnet-aws-compute-project/template/app
+git init
+git add .
+git commit -m "initial commit for infnet app"
+
+# Configure helper para CodeCommit (HTTPS)
+git config --global credential.helper '!aws codecommit credential-helper $@'
+git config --global credential.UseHttpPath true
+
+# Adicione remote (substitua REGION e REPO_NAME se necessário)
+git remote add origin https://git-codecommit.<REGION>.amazonaws.com/v1/repos/infnet-app-repo
+
+# Force criar branch main e push
+git branch -M main
+git push -u origin main
+
+##  EXECUTAR O JOB MANUALMENTE
+# obter o nome do projeto
+PROJECT=$(terraform output -raw codebuild_project_name)
+aws codebuild start-build --project-name "$PROJECT"
+
+```
+
+
+
 ## 🔍 Troubleshooting
 
 | Sintoma                         | Causa provável                              | Solução                                                |

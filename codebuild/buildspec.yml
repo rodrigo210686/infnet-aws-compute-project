@@ -1,0 +1,47 @@
+version: 0.2
+
+env:
+  variables:
+    # variável esperada via Terraform: ECR_REPOSITORY_URL
+    REPOSITORY_URI: "" 
+
+phases:
+  pre_build:
+    commands:
+      - echo "Pre-build listar conteúdo do diretório raiz do source for debugging"
+      - pwd
+      - ls -la
+      - echo "Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_REPOSITORY_URL
+      - REPOSITORY_URI=${ECR_REPOSITORY_URL}
+      - IMAGE_TAG=$(echo ${CODEBUILD_RESOLVED_SOURCE_VERSION:-latest} | cut -c1-7)
+      - echo "REPOSITORY_URI=$REPOSITORY_URI IMAGE_TAG=$IMAGE_TAG"
+  build:
+    commands:
+      - echo "Build started on `date`"
+      - |
+        # detecta onde está o Dockerfile / app
+        if [ -d "template/app" ]; then
+          cd template/app
+        elif [ -d "app" ]; then
+          cd app
+        elif [ -f "Dockerfile" ]; then
+          echo "Dockerfile encontrado na raiz"
+        else
+          echo "Erro: não foi encontrado Dockerfile nem diretório template/app nem app"
+          ls -la
+          exit 1
+        fi
+      - echo "Building the Docker image in $(pwd)"
+      - docker build -t $REPOSITORY_URI:latest .
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+  post_build:
+    commands:
+      - echo "Build completed on `date`"
+      - echo "Pushing the Docker image..."
+      - docker push $REPOSITORY_URI:latest
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - printf '{"ImageURI":"%s"}' $REPOSITORY_URI:latest > imageDefinitions.json
+artifacts:
+  files:
+    - imageDefinitions.json

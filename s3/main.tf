@@ -1,11 +1,22 @@
 variable "bucket_name" {}
-
+variable "bucket_name_source" {
+  default = "infnet-proj-1-source-bucket"
+}
 resource "aws_s3_bucket" "infnet_website_bucket" {
   bucket = var.bucket_name
   
   
   tags = {
     Name = "infnet-aws-compute-project-website-bucket"
+  }
+}
+
+# Novo bloco: habilita ACLs e define ownership como BucketOwnerPreferred
+resource "aws_s3_bucket_ownership_controls" "ownership" {
+  bucket = aws_s3_bucket.infnet_website_bucket.id
+
+  rule {
+    object_ownership = "BucketOwnerPreferred"
   }
 }
 
@@ -30,21 +41,15 @@ resource "aws_s3_bucket_public_access_block" "public_access" {
   restrict_public_buckets = false
 }
 
-resource "aws_s3_bucket_ownership_controls" "ownership" {
-  bucket = aws_s3_bucket.infnet_website_bucket.id
-
-  rule {
-    object_ownership = "BucketOwnerEnforced"
-  }
-}
 resource "aws_s3_bucket_acl" "bucket_acl" {
-  depends_on = [aws_s3_bucket_public_access_block.public_access]
+  depends_on = [aws_s3_bucket_public_access_block.public_access, aws_s3_bucket_ownership_controls.ownership]
     
   bucket = aws_s3_bucket.infnet_website_bucket.id
   acl    = "public-read"
 }
 
 resource "aws_s3_object" "index_html" {
+  depends_on = [ aws_s3_bucket_acl.bucket_acl ]
   bucket = aws_s3_bucket.infnet_website_bucket.id
   key    = "index.html"
   source = "./template/index.html"
