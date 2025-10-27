@@ -183,6 +183,119 @@ aws codebuild start-build --project-name "$PROJECT"
 
 ---
 
+
+
+## ECS / CodeCommit / CodeBuild — Guia Rápido
+
+Este projeto provisiona infraestrutura para executar uma aplicação containerizada em ECS (EC2 launch type), com repositório ECR e pipeline de build via CodeBuild. Abaixo os passos para integrar e testar a aplicação localizada em `./template/app`.
+
+### Pré-requisitos
+- AWS CLI configurado (credenciais & região)
+- Terraform instalado
+- Git instalado
+- Permissões IAM suficientes para criar recursos (ECR, CodeCommit, CodeBuild, ECS, EC2, ASG, VPC, IAM, S3)
+
+### Módulos relevantes
+- `module.ecr` — cria o repositório ECR
+- `module.codecommit` — cria o repositório CodeCommit
+- `module.codebuild` — cria o projeto CodeBuild (usa CodeCommit como source)
+- `module.ecs` — cluster ECS, LT, ASG, capacity provider, task definition
+- `module.networking` — VPC, subnets privadas, endpoints (ECR, ECS, SSM, etc.)
+
+### 1) Criar recursos com Terraform
+No root do repo:
+```bash
+terraform init
+terraform plan
+terraform apply
+```
+Após o `apply` você terá outputs expostos (por exemplo `module.ecr.repository_url`, `module.codecommit.clone_url_http`, `codebuild_project_name`).
+
+### 2) Enviar código local para CodeCommit
+No diretório do app:
+```bash
+cd template/app
+git init
+git add .
+git commit -m "initial commit for infnet app"
+
+# Habilita helper de credenciais do CodeCommit (HTTPS)
+git config --global credential.helper '!aws codecommit credential-helper $@'
+git config --global credential.UseHttpPath true
+
+# Adiciona remote (substitua <REGION> ou use o output do Terraform)
+git remote add origin $(terraform output -raw codecommit_clone_url)
+
+# Force branch main e push
+git branch -M main
+git push -u origin main
+```
+
+Se preferir SSH, use `clone_url_ssh` do output do módulo CodeCommit.
+
+### 3) Disparar build no CodeBuild
+Obtenha o nome do projeto e inicie o build:
+```bash
+PROJECT=$(terraform output -raw codebuild_project_name)
+aws codebuild start-build --project-name "$PROJECT"
+```
+O build irá:
+- Fazer login no ECR
+- Buildar a imagem (procura `Dockerfile` em `template/app` ou `app`)
+- Taggar e pushar para ECR
+
+Se o build falhar por caminho (ex.: `cd template/app`), ajuste o repositório CodeCommit para conter esses arquivos no mesmo layout ou atualize o `buildspec.yml` no módulo codebuild para apontar ao caminho correto.
+
+### 4) Garantir que ECS use a imagem
+No root module passamos a URL do ECR para o módulo ECS:
+```hcl
+module "ecs" {
+  source = "./ECS"
+  ecr_repository_url = module.ecr.repository_url
+  # ... outros inputs ...
+}
+```
+Dependência de criação:
+- Para garantir que o repositório exista antes do ECS, o módulo root usa `depends_on = [module.ecr]`.
+- Se quiser que Terraform dispare o build e espere a imagem pronta, há a opção de criar um `null_resource` que chama `aws codebuild start-build` e faz polling até o build terminar — isso requer AWS CLI no host que executa o Terraform.
+
+### 5) Testar a imagem localmente (opcional)
+Faça pull e rode localmente:
+```bash
+# login
+aws ecr get-login-password --region us-east-1 \
+  | docker login --username AWS --password-stdin $(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com
+
+REPO_URL=$(terraform output -raw ecr_repository_url)
+docker pull ${REPO_URL}:latest
+docker run -d -p 8080:80 ${REPO_URL}:latest
+curl http://localhost:8080
+```
+
+### 6) Verificações no ECS após deploy
+- No Console ECS: verifique cluster, capacity providers e instâncias registradas.
+- No Console EC2: verifique instâncias do ASG, role/instance profile anexados.
+- No Console ECR: confirme tags da imagem (latest e commit hash).
+- No CloudWatch Logs: veja logs do CodeBuild e da aplicação (se configurado).
+
+### Troubleshooting rápido
+- Erro `No outputs found` ao rodar `terraform output -raw codebuild_project_name`:
+  - Adicione no root `outputs.tf`:
+    ```hcl
+    output "codebuild_project_name" {
+      value = module.codebuild.codebuild_project_name
+    }
+    ```
+  - Rode `terraform apply`/`terraform refresh`.
+- Build falha com `cd: can't cd to template/app`:
+  - Certifique-se que o repo CodeCommit contém o diretório `template/app`, ou ajuste `buildspec.yml` para caminho real.
+- `Invalid IAM Instance Profile name` ao criar ASG/Launch Template:
+  - Crie `aws_iam_instance_profile` e passe o nome correto para `iam_instance_profile` na LT.
+- Route table "flapping":
+  - Remova o bloco `route` embutido e use `aws_route` separado para o default route via NAT.
+
+
+
 ## 🧾 Licença
 
 Projeto acadêmico de demonstração — uso livre para fins de estudo e prática de infraestrutura como código (IaC).
