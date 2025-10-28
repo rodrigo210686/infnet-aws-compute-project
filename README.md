@@ -1,5 +1,3 @@
-Perfeito ✅
-Com base no conteúdo do arquivo `terraform.json`, segue um **README.md** objetivo e completo explicando a arquitetura e como configurá-la em outro ambiente.
 
 ---
 
