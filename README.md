@@ -138,7 +138,7 @@ Este projeto provisiona uma **arquitetura AWS altamente disponível** composta p
 
 ---
 
-## Code Commit App Code to upload
+## Code Commit App Code to upload files
 
 ```sh
 cd /root/terraform/infnet-aws-compute-project/infnet-aws-compute-project/template/app
@@ -185,7 +185,7 @@ aws codebuild start-build --project-name "$PROJECT"
 
 
 
-## ECS / CodeCommit / CodeBuild — Guia Rápido
+# ECS / CodeCommit / CodeBuild — Guia Rápido
 
 Este projeto provisiona infraestrutura para executar uma aplicação containerizada em ECS (EC2 launch type), com repositório ECR e pipeline de build via CodeBuild. Abaixo os passos para integrar e testar a aplicação localizada em `./template/app`.
 

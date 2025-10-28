@@ -27,7 +27,7 @@ module "launch_template" {
   ec2_security_group_id = module.security_group.sg_ec2 
  
 }
-/*
+
 module "auto-scaling" {
   source = "./auto-scaling"
   launch_template_id = module.launch_template.app_infnet_proj_1_launch_template_id
@@ -36,7 +36,7 @@ module "auto-scaling" {
   asg_desired_capacity = 2
   private_subnet_ids_for_asg   = tolist(module.networking.infnet_proj_1_private_subnets)
   target_group_arns = [module.lb_target_group.infnet_proj_1_lb_target_group_arn]
-}*/
+}
 
 module "lb_target_group" {
   source                   = "./load-balancer-target-group"
@@ -48,7 +48,7 @@ module "lb_target_group" {
   ecs_lb_target_group_port     = 80
   ecs_lb_target_group_protocol = "HTTP"
 }
-/*
+
 module "alb" {
   source                    = "./load-balancer"
   lb_name                   = "infnet-proj-1-alb"
@@ -68,7 +68,7 @@ module "s3" {
   source = "./s3"
   bucket_name = "infnet-aws-compute-project-website-bucket"
 
-} */
+} 
 
   module "ecr" {
   source = "./ecr"
